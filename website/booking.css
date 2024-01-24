@@ -1,0 +1,76 @@
+*{
+    margin: 0%;
+    padding: 0%;
+    font-family: sans-serif;
+}
+.banner{
+    width: 100%;
+    height: 100vh;
+    background-image: linear-gradient(rgba(245, 245, 249, 0.75),rgba(245, 245, 249, 0.75)),url(background4.png);
+    background-size: cover;
+    background-position: center;
+
+}
+.form{
+    width: 380px;
+    height: 350px;
+    background: linear-gradient(to top,rgba(0,0,0,0.8)50%,rgba(0,0,0,0.8)50%);
+    position: absolute;
+    top: 50px;
+    left: 500px;
+    border-radius: 10px;
+    padding: 25px;
+}
+.form h2{
+    width: 290px;
+    font-family: sans-serif;
+    text-align: center;
+    color: orange;
+    font-size: 22px;
+    background-color: #fff;
+    border-radius: 10px;
+    margin: 2px;
+    padding: 8px;
+}
+.form input{
+    width: 360px;
+    height: 35px;
+    background: transparent;
+    border-bottom: 1px solid orange;
+    border-top: none;
+    border-right: none;
+    border-left: none;
+    color: #fff;
+    font-size: 15px;
+    letter-spacing: 1px;
+    margin-top: 5px;
+    font-family: sans-serif;
+}
+.form input:focus{
+    outline: none;
+}
+::placeholder{
+    color: #fff;
+    font-family: Arial;
+}
+.form label{
+    color: orange;
+}
+.form button{
+    width: 120px;
+    height: 30px;
+    background-color: orange;
+
+}
+.navbar h1{
+    color: orange;
+}
+.navbar h1{
+    color: orange;
+}
+.navbar table tr th{
+    color: orange;
+}
+.navbar table tr td{
+    color: white;
+}
