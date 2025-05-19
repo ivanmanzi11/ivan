@@ -1,0 +1,419 @@
+Imports MySql.Data.MySqlClient
+Imports System.Security.Cryptography
+Imports System.Text
+
+
+
+
+Module DusangireManagement
+    Function HashPassword(password As String) As String
+        Using sha256 As SHA256 = SHA256.Create()
+            Dim bytes As Byte() = Encoding.UTF8.GetBytes(password)
+            Dim hashBytes As Byte() = sha256.ComputeHash(bytes)
+            Return BitConverter.ToString(hashBytes).Replace("-", "").ToLower()
+        End Using
+    End Function
+    Dim connString As String = "server=localhost;user id=root;password=;database=dusangire;"
+    Dim loggedInAdmin As String = ""
+
+    ' [Existing functions remain unchanged]
+
+    Sub LogActivity(action As String)
+        Using conn As New MySqlConnection(connString)
+            conn.Open()
+            Dim query = "INSERT INTO admin_logs (username, action, time) VALUES (@username, @action, @time)"
+            Using cmd As New MySqlCommand(query, conn)
+                cmd.Parameters.AddWithValue("@username", loggedInAdmin)
+                cmd.Parameters.AddWithValue("@action", action)
+                cmd.Parameters.AddWithValue("@time", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"))
+                cmd.ExecuteNonQuery()
+            End Using
+        End Using
+    End Sub
+
+    Sub AddUmuryi()
+        Console.WriteLine("=== Add New Umuryi ===")
+        Console.Write("ID: ") : Dim id = Console.ReadLine()
+        Console.Write("First Name: ") : Dim fname = Console.ReadLine()
+        Console.Write("Last Name: ") : Dim lname = Console.ReadLine()
+        Console.Write("Phone: ") : Dim phone = Console.ReadLine()
+        Console.Write("Email: ") : Dim email = Console.ReadLine()
+        Console.Write("Credited Amount: ") : Dim credit = Double.Parse(Console.ReadLine())
+
+        Using conn As New MySqlConnection(connString)
+            conn.Open()
+            Dim query = "INSERT INTO abaryi (id, first_name, last_name, phone, email, credited_amount, balance) VALUES (@id, @fn, @ln, @ph, @em, @cr, @cr)"
+            Using cmd As New MySqlCommand(query, conn)
+                cmd.Parameters.AddWithValue("@id", id)
+                cmd.Parameters.AddWithValue("@fn", fname)
+                cmd.Parameters.AddWithValue("@ln", lname)
+                cmd.Parameters.AddWithValue("@ph", phone)
+                cmd.Parameters.AddWithValue("@em", email)
+                cmd.Parameters.AddWithValue("@cr", credit)
+                cmd.ExecuteNonQuery()
+            End Using
+
+            Dim tx = "INSERT INTO transactions (client_id, action, amount, time) VALUES (@id, 'CREDIT', @amt, @time)"
+            Using txCmd As New MySqlCommand(tx, conn)
+                txCmd.Parameters.AddWithValue("@id", id)
+                txCmd.Parameters.AddWithValue("@amt", credit)
+                txCmd.Parameters.AddWithValue("@time", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"))
+                txCmd.ExecuteNonQuery()
+            End Using
+        End Using
+        Console.WriteLine("Umuryi added successfully.") : Console.ReadLine()
+    End Sub
+
+
+    Sub ViewAbaryi()
+        Console.WriteLine("=== All Abaryi ===")
+        Using conn As New MySqlConnection(connString)
+            conn.Open()
+            Dim query = "SELECT * FROM abaryi"
+            Using cmd As New MySqlCommand(query, conn)
+                Using reader = cmd.ExecuteReader()
+                    While reader.Read()
+                        Console.WriteLine($"{reader("id")} | {reader("first_name")} {reader("last_name")} | {reader("phone")} | Balance: {reader("balance")}")
+                    End While
+                End Using
+            End Using
+        End Using
+        Console.ReadLine()
+    End Sub
+
+    Sub SpendFromBalance()
+        Console.WriteLine("=== Spend from Balance ===")
+        Console.Write("Enter Umuryi ID: ")
+        Dim id = Console.ReadLine()
+        Console.Write("Enter amount to spend: ")
+        Dim amount = Double.Parse(Console.ReadLine())
+
+        Using conn As New MySqlConnection(connString)
+            conn.Open()
+            Dim checkQuery = "SELECT balance FROM abaryi WHERE id = @id"
+            Using cmd As New MySqlCommand(checkQuery, conn)
+                cmd.Parameters.AddWithValue("@id", id)
+                Dim balance = Convert.ToDouble(cmd.ExecuteScalar())
+                If balance < amount Then
+                    Console.WriteLine("Insufficient balance.")
+                    Console.ReadLine()
+                    Return
+                End If
+            End Using
+
+            Dim update = "UPDATE abaryi SET balance = balance - @amt WHERE id = @id"
+            Using cmd As New MySqlCommand(update, conn)
+                cmd.Parameters.AddWithValue("@amt", amount)
+                cmd.Parameters.AddWithValue("@id", id)
+                cmd.ExecuteNonQuery()
+            End Using
+
+            Dim log = "INSERT INTO transactions (client_id, action, amount, time) VALUES (@id, 'SPEND', @amt, @time)"
+            Using cmd As New MySqlCommand(log, conn)
+                cmd.Parameters.AddWithValue("@id", id)
+                cmd.Parameters.AddWithValue("@amt", amount)
+                cmd.Parameters.AddWithValue("@time", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"))
+                cmd.ExecuteNonQuery()
+            End Using
+        End Using
+        Console.WriteLine("Amount spent successfully.")
+        Console.ReadLine()
+    End Sub
+
+    Sub EditUmuryiInfo()
+        Console.WriteLine("=== Edit Umuryi Info ===")
+        Console.Write("Enter Umuryi ID: ")
+        Dim id = Console.ReadLine()
+        Console.Write("New First Name: ")
+        Dim fname = Console.ReadLine()
+        Console.Write("New Last Name: ")
+        Dim lname = Console.ReadLine()
+        Console.Write("New Phone: ")
+        Dim phone = Console.ReadLine()
+        Console.Write("New Email: ")
+        Dim email = Console.ReadLine()
+
+        Using conn As New MySqlConnection(connString)
+            conn.Open()
+            Dim update = "UPDATE abaryi SET first_name=@fn, last_name=@ln, phone=@ph, email=@em WHERE id=@id"
+            Using cmd As New MySqlCommand(update, conn)
+                cmd.Parameters.AddWithValue("@fn", fname)
+                cmd.Parameters.AddWithValue("@ln", lname)
+                cmd.Parameters.AddWithValue("@ph", phone)
+                cmd.Parameters.AddWithValue("@em", email)
+                cmd.Parameters.AddWithValue("@id", id)
+                cmd.ExecuteNonQuery()
+            End Using
+        End Using
+        Console.WriteLine("Umuryi info updated.")
+        Console.ReadLine()
+    End Sub
+
+    Sub UpdateCredit()
+        Console.WriteLine("=== Update Credit ===")
+        Console.Write("Enter Umuryi ID: ")
+        Dim id = Console.ReadLine()
+        Console.Write("Amount to credit: ")
+        Dim amount = Double.Parse(Console.ReadLine())
+
+        Using conn As New MySqlConnection(connString)
+            conn.Open()
+            Dim update = "UPDATE abaryi SET credited_amount = credited_amount + @amt, balance = balance + @amt WHERE id = @id"
+            Using cmd As New MySqlCommand(update, conn)
+                cmd.Parameters.AddWithValue("@amt", amount)
+                cmd.Parameters.AddWithValue("@id", id)
+                cmd.ExecuteNonQuery()
+            End Using
+
+            Dim log = "INSERT INTO transactions (client_id, action, amount, time) VALUES (@id, 'CREDIT', @amt, @time)"
+            Using cmd As New MySqlCommand(log, conn)
+                cmd.Parameters.AddWithValue("@id", id)
+                cmd.Parameters.AddWithValue("@amt", amount)
+                cmd.Parameters.AddWithValue("@time", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"))
+                cmd.ExecuteNonQuery()
+            End Using
+        End Using
+        Console.WriteLine("Credit updated successfully.")
+        Console.ReadLine()
+    End Sub
+
+    Sub DeleteUmuryi()
+        Console.WriteLine("=== Delete Umuryi ===")
+        Console.Write("Enter Umuryi ID: ")
+        Dim id = Console.ReadLine()
+
+        Using conn As New MySqlConnection(connString)
+            conn.Open()
+            Dim delete = "DELETE FROM abaryi WHERE id=@id"
+            Using cmd As New MySqlCommand(delete, conn)
+                cmd.Parameters.AddWithValue("@id", id)
+                cmd.ExecuteNonQuery()
+            End Using
+        End Using
+        Console.WriteLine("Umuryi deleted.")
+        Console.ReadLine()
+    End Sub
+
+    Sub ViewUmuryiHistory()
+        Console.WriteLine("=== Umuryi History ===")
+        Console.Write("Enter Umuryi ID: ")
+        Dim id = Console.ReadLine()
+
+        Using conn As New MySqlConnection(connString)
+            conn.Open()
+            Dim query = "SELECT * FROM transactions WHERE client_id = @id ORDER BY time DESC"
+            Using cmd As New MySqlCommand(query, conn)
+                cmd.Parameters.AddWithValue("@id", id)
+                Using reader = cmd.ExecuteReader()
+                    While reader.Read()
+                        Console.WriteLine($"{reader("time")} | {reader("action")} | {reader("amount")}")
+                    End While
+                End Using
+            End Using
+        End Using
+        Console.ReadLine()
+    End Sub
+
+    Sub ViewBalance()
+        Console.WriteLine("=== View Umuryi Balance ===")
+        Console.Write("Enter Umuryi ID: ")
+        Dim id = Console.ReadLine()
+
+        Using conn As New MySqlConnection(connString)
+            conn.Open()
+            Dim query = "SELECT first_name, last_name, balance FROM abaryi WHERE id = @id"
+            Using cmd As New MySqlCommand(query, conn)
+                cmd.Parameters.AddWithValue("@id", id)
+                Using reader = cmd.ExecuteReader()
+                    If reader.Read() Then
+                        Console.WriteLine($"{reader("first_name")} {reader("last_name")} | Balance: {reader("balance")}")
+                    Else
+                        Console.WriteLine("Umuryi not found.")
+                    End If
+                End Using
+            End Using
+        End Using
+        Console.ReadLine()
+    End Sub
+
+    Sub SearchUmuryi()
+        Console.WriteLine("=== Search Umuryi ===")
+        Console.Write("Enter keyword (name or phone): ")
+        Dim keyword = Console.ReadLine()
+
+        Using conn As New MySqlConnection(connString)
+            conn.Open()
+            Dim query = "SELECT * FROM abaryi WHERE first_name LIKE @k OR last_name LIKE @k OR phone LIKE @k"
+            Using cmd As New MySqlCommand(query, conn)
+                cmd.Parameters.AddWithValue("@k", "%" & keyword & "%")
+                Using reader = cmd.ExecuteReader()
+                    While reader.Read()
+                        Console.WriteLine($"{reader("id")} | {reader("first_name")} {reader("last_name")} | {reader("phone")}")
+                    End While
+                End Using
+            End Using
+        End Using
+        Console.ReadLine()
+    End Sub
+
+    Sub ChangePassword()
+        Console.WriteLine("=== Change Password ===")
+        Console.Write("Enter current password: ")
+        Dim oldPass = Console.ReadLine()
+        Dim oldHash = HashPassword(oldPass)
+
+        Using conn As New MySqlConnection(connString)
+            conn.Open()
+            Dim check = "SELECT COUNT(*) FROM admins WHERE username = @u AND password_hash = @p"
+            Using cmd As New MySqlCommand(check, conn)
+                cmd.Parameters.AddWithValue("@u", loggedInAdmin)
+                cmd.Parameters.AddWithValue("@p", oldHash)
+                If Convert.ToInt32(cmd.ExecuteScalar()) = 0 Then
+                    Console.WriteLine("Incorrect password.")
+                    Console.ReadLine()
+                    Return
+                End If
+            End Using
+
+            Console.Write("Enter new password: ")
+            Dim newPass = Console.ReadLine()
+            Dim newHash = HashPassword(newPass)
+            Dim update = "UPDATE admins SET password_hash = @new WHERE username = @u"
+            Using cmd As New MySqlCommand(update, conn)
+                cmd.Parameters.AddWithValue("@new", newHash)
+                cmd.Parameters.AddWithValue("@u", loggedInAdmin)
+                cmd.ExecuteNonQuery()
+            End Using
+        End Using
+        Console.WriteLine("Password updated successfully.")
+        Console.ReadLine()
+    End Sub
+
+    Sub RegisterAdmin()
+        Console.WriteLine("=== Register Admin ===")
+        Console.Write("Enter new admin username: ")
+        Dim username = Console.ReadLine()
+        Console.Write("Enter password: ")
+        Dim password = Console.ReadLine()
+        Dim hash = HashPassword(password)
+
+        Using conn As New MySqlConnection(connString)
+            conn.Open()
+            Dim exists = "SELECT COUNT(*) FROM admins WHERE username = @u"
+            Using cmd As New MySqlCommand(exists, conn)
+                cmd.Parameters.AddWithValue("@u", username)
+                If Convert.ToInt32(cmd.ExecuteScalar()) > 0 Then
+                    Console.WriteLine("Username already exists.")
+                    Console.ReadLine()
+                    Return
+                End If
+            End Using
+
+            Dim insert = "INSERT INTO admins (username, password_hash) VALUES (@u, @h)"
+            Using cmd As New MySqlCommand(insert, conn)
+                cmd.Parameters.AddWithValue("@u", username)
+                cmd.Parameters.AddWithValue("@h", hash)
+                cmd.ExecuteNonQuery()
+            End Using
+        End Using
+        Console.WriteLine("Admin registered successfully.")
+        Console.ReadLine()
+    End Sub
+
+    Sub DeleteAdmin()
+        Console.WriteLine("=== Delete Admin ===")
+        Console.Write("Enter username to delete: ")
+        Dim username = Console.ReadLine()
+
+        If username = loggedInAdmin Then
+            Console.WriteLine("You cannot delete yourself while logged in.")
+            Console.ReadLine()
+            Return
+        End If
+
+        Using conn As New MySqlConnection(connString)
+            conn.Open()
+            Dim exists = "SELECT COUNT(*) FROM admins WHERE username = @u"
+            Using cmd As New MySqlCommand(exists, conn)
+                cmd.Parameters.AddWithValue("@u", username)
+                If Convert.ToInt32(cmd.ExecuteScalar()) = 0 Then
+                    Console.WriteLine("Admin not found.")
+                    Console.ReadLine()
+                    Return
+                End If
+            End Using
+
+            Dim delete = "DELETE FROM admins WHERE username = @u"
+            Using cmd As New MySqlCommand(delete, conn)
+                cmd.Parameters.AddWithValue("@u", username)
+                cmd.ExecuteNonQuery()
+            End Using
+        End Using
+        Console.WriteLine("Admin deleted successfully.")
+        Console.ReadLine()
+    End Sub
+    Sub Main()
+        Console.WriteLine("=== Dusangire Admin Login ===")
+        Console.Write("Username: ")
+        Dim username = Console.ReadLine()
+        Console.Write("Password: ")
+        Dim password = Console.ReadLine()
+        Dim hashed = HashPassword(password)
+
+        Using conn As New MySqlConnection(connString)
+            conn.Open()
+            Dim query = "SELECT COUNT(*) FROM admins WHERE username = @u AND password_hash = @p"
+            Using cmd As New MySqlCommand(query, conn)
+                cmd.Parameters.AddWithValue("@u", username)
+                cmd.Parameters.AddWithValue("@p", hashed)
+                If Convert.ToInt32(cmd.ExecuteScalar()) = 0 Then
+                    Console.WriteLine("Invalid login.")
+                    Return
+                Else
+                    loggedInAdmin = username
+                End If
+            End Using
+        End Using
+
+        Dim running As Boolean = True
+        While running
+            Console.Clear()
+            Console.WriteLine("=== Dusangire Restaurant Prepaid Umuryi Management ===")
+            Console.WriteLine("1. Add New Umuryi")
+            Console.WriteLine("2. View All Abaryi")
+            Console.WriteLine("3. Amount Spent")
+            Console.WriteLine("4. Edit Umuryi Info")
+            Console.WriteLine("5. Update Credited Amount")
+            Console.WriteLine("6. Delete Umuryi")
+            Console.WriteLine("7. View Umuryi History")
+            Console.WriteLine("8. View Balance")
+            Console.WriteLine("9. Search Umuryi by Name or Phone")
+            Console.WriteLine("10. Change Admin Password")
+            Console.WriteLine("11. Register New Admin")
+            Console.WriteLine("12. Delete Admin")
+            Console.WriteLine("13. Exit")
+            Console.Write("Choose an option: ")
+            Dim choice = Console.ReadLine()
+
+            Select Case choice
+                Case "1" : AddUmuryi() : LogActivity("Added Umuryi")
+                Case "2" : ViewAbaryi()
+                Case "3" : SpendFromBalance() : LogActivity("Spent from Umuryi balance")
+                Case "4" : EditUmuryiInfo() : LogActivity("Edited Umuryi info")
+                Case "5" : UpdateCredit() : LogActivity("Updated Umuryi credit")
+                Case "6" : DeleteUmuryi() : LogActivity("Deleted Umuryi")
+                Case "7" : ViewUmuryiHistory()
+                Case "8" : ViewBalance()
+                Case "9" : SearchUmuryi()
+                Case "10" : ChangePassword() : LogActivity("Changed password")
+                Case "11" : RegisterAdmin() : LogActivity("Registered new admin")
+                Case "12" : DeleteAdmin() : LogActivity("Deleted admin")
+                Case "13" : LogActivity("Logged out") : running = False
+                Case Else
+                    Console.WriteLine("Invalid option. Press Enter to continue.")
+                    Console.ReadLine()
+            End Select
+        End While
+    End Sub
+
+End Module
