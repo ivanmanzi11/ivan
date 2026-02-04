@@ -1,0 +1,41 @@
+*{
+    margin: 0%;
+    padding: 0%;
+    font-family: sans-serif;
+}
+.banner{
+    width: 100%;
+    height: 180vh;
+    background-image: linear-gradient(rgba(65, 13, 108, 0.75),rgba(65, 13, 108, 0.75)),url(Background.png);
+    background-size: cover;
+    background-position: center;
+
+}
+.content{
+    width: 100%;
+    position: absolute;
+    top: 0;
+    transform: translate(0);
+    text-align: left;
+    color: #fff;
+}
+.content p{
+    text-decoration: none;
+    color: orange;
+    text-transform: uppercase;
+}
+.content a{
+    text-decoration: none;
+    color: #fff;
+    text-transform: none;
+}
+.content h1{
+    color: orange;
+}
+.navbar h1{
+    color: orange;
+}
+.content p u{
+    color: orange;
+    font-weight: bolder;
+}
