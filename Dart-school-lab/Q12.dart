@@ -8,10 +8,11 @@ class Student {
 
 void main() {
   List<Student> students = [
-    Student("bertin", 20),
+    Student("Paul", 20),
     Student("Bwiza", 22),
-    Student("John", 19),
+    Student("Bertin", 19),
   ];
 
   // No output
 }
+
